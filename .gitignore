@@ -22,6 +22,7 @@
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
 
 # debug
@@ -29,13 +30,27 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.cursor/
+AGENTS.md
+CLAUDE.md
+CODEX.md
+.github/copilot-instructions.md
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files — never commit secrets; templates stay tracked
+.env
+.env.*
+.envrc
+!.env.example
+!.env.sample
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+
+# GCP / service account keys (never commit)
+*-sa.json
+*-service-account.json
+service-account*.json
+
