@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import SignInModal from "./SignInModal";
 import SignUpModal from "./SignUpModal";
 
@@ -16,6 +17,15 @@ export default function Header() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
+
+  const navLinkClass = (href: string) =>
+    `text-sm font-medium tracking-wide uppercase transition-colors ${
+      isActive(href) ? "text-orange" : "text-white/80 hover:text-white"
+    }`;
 
   const fetchUser = async () => {
     const res = await fetch("/api/auth/me");
@@ -54,23 +64,14 @@ export default function Header() {
 
             {/* Nav links */}
             <nav className="hidden md:flex items-center gap-8">
-              <Link
-                href="/courses"
-                className="text-white/80 hover:text-white text-sm font-medium tracking-wide uppercase transition-colors"
-              >
+              <Link href="/courses" className={navLinkClass("/courses")}>
                 Courses
               </Link>
-              <Link
-                href="/posts"
-                className="text-white/80 hover:text-white text-sm font-medium tracking-wide uppercase transition-colors"
-              >
+              <Link href="/posts" className={navLinkClass("/posts")}>
                 Browse
               </Link>
               {user && (
-                <Link
-                  href="/messages"
-                  className="text-white/80 hover:text-white text-sm font-medium tracking-wide uppercase transition-colors"
-                >
+                <Link href="/messages" className={navLinkClass("/messages")}>
                   Messages
                 </Link>
               )}

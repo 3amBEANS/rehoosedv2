@@ -109,6 +109,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const imageUrl = isDigital
+      ? "https://icon-icons.com/download-file?file=https%3A%2F%2Fimages.icon-icons.com%2F570%2FPNG%2F256%2Fdocument_9_icon-icons.com_54619.png&id=54619&pack_or_individual=pack"
+      : "https://cdn-icons-png.flaticon.com/512/8832/8832880.png";
+
+    await connection.query(
+      "INSERT INTO postImage (postId, imageUrl) VALUES (?, ?)",
+      [postId, imageUrl]
+    );
+
     await connection.commit();
     return NextResponse.json({ postId }, { status: 201 });
   } catch (error) {
