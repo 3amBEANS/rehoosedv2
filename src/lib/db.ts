@@ -25,6 +25,10 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  // Avoid PROTOCOL_CONNECTION_LOST when Cloud SQL / Auth Proxy closes idle TCP
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  connectTimeout: 15_000,
   ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
 });
 

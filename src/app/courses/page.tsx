@@ -32,10 +32,20 @@ function CoursesContent() {
 
   const fetchCourses = useCallback(async (q: string) => {
     setLoading(true);
-    const res = await fetch(`/api/courses?q=${encodeURIComponent(q)}`);
-    const data = await res.json();
-    setCourses(data);
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/courses?q=${encodeURIComponent(q)}`);
+      const text = await res.text();
+      if (!res.ok || !text) {
+        setCourses([]);
+        return;
+      }
+      const data = JSON.parse(text) as unknown;
+      setCourses(Array.isArray(data) ? (data as CourseRow[]) : []);
+    } catch {
+      setCourses([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

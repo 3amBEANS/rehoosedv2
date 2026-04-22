@@ -33,6 +33,8 @@ cloud-sql-proxy cs4750db-489802:us-east4:cs4750db --address 127.0.0.1 --port 330
 
 Wait for: `The proxy has started successfully and is ready for new connections!`
 
+If you see **`PROTOCOL_CONNECTION_LOST`** in the Next.js terminal, the DB tunnel dropped: restart **`cloud-sql-proxy`**, confirm nothing else is using the same port, and try again. The app pool uses TCP keep-alive to reduce idle drops, but the proxy must stay running.
+
 **Terminal B — app**
 
 In `.env.local`, point at the proxy (not the Cloud SQL public IP):
@@ -44,6 +46,14 @@ DB_USER=root
 DB_PASSWORD=<your MySQL password>
 DB_NAME=m2projectdatabase
 ```
+
+If you use the **Network** URL from `next dev` (e.g. `http://172.26.x.x:3000`) and see HMR blocked, add the host (no `http://`, no port):
+
+```env
+ALLOWED_DEV_ORIGINS=172.26.79.127
+```
+
+Restart `npm run dev` after changing this.
 
 Then:
 
