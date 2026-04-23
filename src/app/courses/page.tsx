@@ -14,6 +14,18 @@ interface CourseRow {
   listingCount: number;
 }
 
+interface CoursesResponse {
+  courses: CourseRow[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+const PAGE_SIZE = 25;
+
 export default function CoursesPage() {
   return (
     <Suspense fallback={<div className="max-w-5xl mx-auto px-4 py-20 text-center text-gray-400">Loading...</div>}>
@@ -25,37 +37,67 @@ export default function CoursesPage() {
 function CoursesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialQ = searchParams.get("q") || "";
+  const query = searchParams.get("q") || "";
+  const pageParam = Number(searchParams.get("page") || "1");
+  const currentPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const [courses, setCourses] = useState<CourseRow[]>([]);
-  const [search, setSearch] = useState(initialQ);
+  const [search, setSearch] = useState(query);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  const fetchCourses = useCallback(async (q: string) => {
+  const fetchCourses = useCallback(async (q: string, page: number) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/courses?q=${encodeURIComponent(q)}`);
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_SIZE),
+      });
+      if (q) params.set("q", q);
+
+      const res = await fetch(`/api/courses?${params.toString()}`);
       const text = await res.text();
       if (!res.ok || !text) {
         setCourses([]);
+        setTotal(0);
+        setTotalPages(1);
         return;
       }
-      const data = JSON.parse(text) as unknown;
-      setCourses(Array.isArray(data) ? (data as CourseRow[]) : []);
+      const data = JSON.parse(text) as CoursesResponse;
+      setCourses(Array.isArray(data.courses) ? data.courses : []);
+      setTotal(Number(data.pagination?.total || 0));
+      setTotalPages(Math.max(Number(data.pagination?.totalPages || 1), 1));
     } catch {
       setCourses([]);
+      setTotal(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchCourses(initialQ);
-  }, [initialQ, fetchCourses]);
+    setSearch(query);
+    fetchCourses(query, currentPage);
+  }, [query, currentPage, fetchCourses]);
 
   const handleSearch = (q: string) => {
     setSearch(q);
-    router.replace(`/courses?q=${encodeURIComponent(q)}`, { scroll: false });
-    fetchCourses(q);
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    router.replace(`/courses${params.toString() ? `?${params.toString()}` : ""}`, {
+      scroll: false,
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    const nextPage = Math.min(Math.max(page, 1), totalPages);
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (nextPage > 1) params.set("page", String(nextPage));
+    router.replace(`/courses${params.toString() ? `?${params.toString()}` : ""}`, {
+      scroll: false,
+    });
   };
 
   // Group by department
@@ -65,6 +107,15 @@ function CoursesContent() {
     acc[key].push(c);
     return acc;
   }, {});
+
+  const startItem = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const endItem = Math.min(currentPage * PAGE_SIZE, total);
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
+    (page) =>
+      page === 1 ||
+      page === totalPages ||
+      Math.abs(page - currentPage) <= 1
+  );
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -76,8 +127,23 @@ function CoursesContent() {
         placeholder="Search courses (e.g., CS 3240, Biology)"
         onSearch={handleSearch}
         defaultValue={search}
-        className="mb-8"
+        className="mb-4"
       />
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8 text-sm text-gray-500">
+        <p>
+          {loading
+            ? "Loading courses..."
+            : total === 0
+              ? "No courses found"
+              : `Showing ${startItem}-${endItem} of ${total} courses`}
+        </p>
+        {!loading && totalPages > 1 && (
+          <p>
+            Page {currentPage} of {totalPages}
+          </p>
+        )}
+      </div>
 
       {loading ? (
         <div className="text-center py-20 text-gray-400">Loading courses...</div>
@@ -145,6 +211,51 @@ function CoursesContent() {
               </div>
             </div>
           ))}
+          {totalPages > 1 && (
+            <nav
+              aria-label="Course pages"
+              className="flex flex-wrap items-center justify-center gap-2 pt-4"
+            >
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-navy disabled:opacity-40 disabled:cursor-not-allowed hover:border-orange hover:text-orange transition-colors"
+              >
+                Previous
+              </button>
+              {pageNumbers.map((page, index) => {
+                const previousPage = pageNumbers[index - 1];
+                const showGap = previousPage && page - previousPage > 1;
+
+                return (
+                  <div key={page} className="flex items-center gap-2">
+                    {showGap && <span className="text-gray-300">...</span>}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(page)}
+                      aria-current={page === currentPage ? "page" : undefined}
+                      className={`min-w-10 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                        page === currentPage
+                          ? "border-orange bg-orange text-white"
+                          : "border-gray-200 bg-white text-navy hover:border-orange hover:text-orange"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-navy disabled:opacity-40 disabled:cursor-not-allowed hover:border-orange hover:text-orange transition-colors"
+              >
+                Next
+              </button>
+            </nav>
+          )}
         </div>
       )}
     </div>
