@@ -6,12 +6,29 @@ Use the **Cloud SQL Auth Proxy** so Next.js can reach MySQL without relying on *
 
 1. Install tools (Homebrew):
 
+   For mac users:
    ```bash
    brew install cloud-sql-proxy
    brew install --cask google-cloud-sdk
    ```
 
    Open a new terminal after installing `google-cloud-sdk` so `gcloud` is on your `PATH`.
+
+   For windows:
+
+   windows 64 bit:
+   1. Go to this link: https://docs.cloud.google.com/sql/docs/mysql/connect-auth-proxy
+   
+   Scroll down until you see:
+   "Right-click https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.21.1/cloud-sql-proxy.x64.exe and select Save Link As to download the Cloud SQL Auth Proxy. Rename the file to cloud-sql-proxy.exe."
+
+   2. Go to: https://docs.cloud.google.com/sdk/docs/install-sdk 
+   install windows Google CLI
+
+   Open a new terminal after installing `google-cloud-sdk` so `gcloud` is on your `PATH`.
+
+   
+
 
 2. Sign in and set Application Default Credentials (used by the proxy):
 
@@ -27,8 +44,20 @@ Use the **Cloud SQL Auth Proxy** so Next.js can reach MySQL without relying on *
 
 **Terminal A — keep this running**
 
+mac users:
 ```bash
+
 cloud-sql-proxy cs4750db-489802:us-east4:cs4750db --address 127.0.0.1 --port 3307
+```
+
+windows users:
+```bash
+ npm run db
+```
+this runs the db script within package.json which is the equivalent to running:
+
+```bash
+cloud-sql-proxy.x64.exe cs4750db-489802:us-east4:cs4750db --address 127.0.0.1 --port 3307
 ```
 
 Wait for: `The proxy has started successfully and is ready for new connections!`

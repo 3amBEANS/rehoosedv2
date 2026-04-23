@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db": "cloud-sql-proxy.x64.exe cs4750db-489802:us-east4:cs4750db --address 127.0.0.1 --port 3307"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
