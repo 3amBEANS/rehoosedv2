@@ -304,25 +304,6 @@ export default function PostDetailPage() {
                 </div>
               )}
 
-              {/* Type badge — overlay top-left */}
-              <span
-                className={`absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full backdrop-blur-sm ${
-                  post.isDigital
-                    ? "bg-blue-500/95 text-white"
-                    : "bg-emerald-500/95 text-white"
-                }`}
-              >
-                {post.isDigital ? (
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                ) : (
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                )}
-                {post.isDigital ? "Digital" : "Physical"}
-              </span>
             </div>
 
             {/* Thumbnail strip */}
@@ -357,7 +338,7 @@ export default function PostDetailPage() {
               className="inline-flex items-center self-start gap-1.5 px-3 py-1 bg-orange/10 text-orange rounded-full text-xs font-semibold hover:bg-orange/15 transition-colors"
             >
               {post.deptCode} {post.courseNumber}
-              <span className="text-orange/70">·</span>
+              <span className="text-orange/70">-</span>
               <span className="text-orange/90 font-medium">{post.courseName}</span>
             </Link>
 
@@ -402,7 +383,7 @@ export default function PostDetailPage() {
             )}
 
             {/* Primary action: download (digital only) */}
-            {post.isDigital && post.fileUrl && (
+            {!!post.isDigital && post.fileUrl && (
               <a
                 href={post.fileUrl}
                 target="_blank"
@@ -442,9 +423,6 @@ export default function PostDetailPage() {
                       : "bg-navy text-white hover:bg-navy-light shadow-sm"
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
                   Message Owner
                 </button>
               )}
@@ -552,11 +530,6 @@ export default function PostDetailPage() {
               </div>
             </div>
           ))}
-          {comments.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-6">
-              No comments yet. Be the first to ask a question.
-            </p>
-          )}
         </div>
       </div>
 

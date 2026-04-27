@@ -35,6 +35,9 @@ export default function Header() {
 
   useEffect(() => {
     fetchUser();
+    const onUserUpdated = () => fetchUser();
+    window.addEventListener("user-updated", onUserUpdated);
+    return () => window.removeEventListener("user-updated", onUserUpdated);
   }, []);
 
   const handleLogout = async () => {
@@ -85,11 +88,19 @@ export default function Header() {
                     onClick={() => setMenuOpen(!menuOpen)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
                   >
-                    <div className="w-7 h-7 rounded-full bg-orange flex items-center justify-center text-white">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                      </svg>
-                    </div>
+                    {user.profilePhoto ? (
+                      <img
+                        src={user.profilePhoto}
+                        alt={user.username}
+                        className="w-7 h-7 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-orange flex items-center justify-center text-white">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                        </svg>
+                      </div>
+                    )}
                     <span className="text-white text-sm font-medium hidden sm:block">
                       {user.username}
                     </span>

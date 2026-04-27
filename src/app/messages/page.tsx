@@ -191,7 +191,7 @@ function MessagesContent() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <h1 className="font-display text-3xl font-bold text-navy-dark mb-5 tracking-tight">
+      <h1 className="text-3xl font-bold text-navy-dark mb-8">
         Messages
       </h1>
 
@@ -275,7 +275,7 @@ function MessagesContent() {
                         </div>
                         {c.postTitle && (
                           <p className="text-[11px] text-orange/90 font-medium truncate mt-0.5">
-                            {c.postDeptCode} {c.postCourseNumber} ·{" "}
+                            {c.postDeptCode} {c.postCourseNumber} -{" "}
                             {c.postTitle}
                           </p>
                         )}
@@ -369,7 +369,7 @@ function MessagesContent() {
                         <>
                           {" "}
                           <span className="text-gray-400 font-normal">
-                            · {activeDetail.postCourseName}
+                            - {activeDetail.postCourseName}
                           </span>
                         </>
                       )}
