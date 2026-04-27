@@ -14,9 +14,22 @@ export async function GET(
 
   const { conversationId } = await params;
 
-  // Verify user is part of this conversation
+  // Verify user is part of this conversation, and pull the listing it's
+  // anchored to (if any) in the same trip.
   const [conv] = await pool.query<RowDataPacket[]>(
-    "SELECT * FROM conversation WHERE conversationId = ? AND (user1 = ? OR user2 = ?)",
+    `SELECT conv.conversationId, conv.user1, conv.user2, conv.postId,
+            p.title       AS postTitle,
+            p.description AS postDescription,
+            CASE WHEN dp.postId IS NOT NULL THEN 1 ELSE 0 END AS postIsDigital,
+            c.deptCode      AS postDeptCode,
+            c.courseNumber  AS postCourseNumber,
+            c.courseName    AS postCourseName,
+            (SELECT pi.imageUrl FROM postImage pi WHERE pi.postId = conv.postId LIMIT 1) AS postThumbnail
+     FROM conversation conv
+     LEFT JOIN post p ON p.postId = conv.postId
+     LEFT JOIN course c ON c.courseId = p.courseId
+     LEFT JOIN digitalPost dp ON dp.postId = p.postId
+     WHERE conv.conversationId = ? AND (conv.user1 = ? OR conv.user2 = ?)`,
     [conversationId, username, username]
   );
   if (conv.length === 0) {

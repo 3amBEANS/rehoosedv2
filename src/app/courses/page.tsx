@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
@@ -26,9 +26,44 @@ interface CoursesResponse {
 
 const PAGE_SIZE = 25;
 
+function CoursesSkeleton() {
+  return (
+    <div className="space-y-7">
+      {[...Array(4)].map((_, i) => (
+        <div key={i}>
+          <div className="h-3 w-44 bg-gray-200 rounded animate-pulse mb-3" />
+          <div className="space-y-1">
+            {[...Array(3)].map((_, j) => (
+              <div
+                key={j}
+                className="h-12 bg-white border border-gray-100 rounded-xl animate-pulse"
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function CoursesPage() {
   return (
-    <Suspense fallback={<div className="max-w-5xl mx-auto px-4 py-20 text-center text-gray-400">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-cream">
+          <div className="bg-white border-b border-gray-100">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <div className="h-7 w-28 bg-gray-100 rounded animate-pulse" />
+              <div className="h-3 w-40 bg-gray-100 rounded animate-pulse mt-2" />
+            </div>
+          </div>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="h-[58px] bg-white border border-gray-200 rounded-2xl animate-pulse mb-8" />
+            <CoursesSkeleton />
+          </div>
+        </div>
+      }
+    >
       <CoursesContent />
     </Suspense>
   );
@@ -45,6 +80,7 @@ function CoursesContent() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
 
   const fetchCourses = useCallback(async (q: string, page: number) => {
     setLoading(true);
@@ -100,13 +136,25 @@ function CoursesContent() {
     });
   };
 
-  // Group by department
-  const grouped = courses.reduce<Record<string, CourseRow[]>>((acc, c) => {
-    const key = `${c.deptCode} - ${c.deptName}`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(c);
-    return acc;
-  }, {});
+  const grouped = useMemo(
+    () =>
+      courses.reduce<Record<string, { deptName: string; courses: CourseRow[] }>>(
+        (acc, c) => {
+          const key = c.deptCode;
+          if (!acc[key]) acc[key] = { deptName: c.deptName, courses: [] };
+          acc[key].courses.push(c);
+          return acc;
+        },
+        {},
+      ),
+    [courses],
+  );
+
+  useEffect(() => {
+    setOpenMap(
+      Object.fromEntries(Object.keys(grouped).map((key) => [key, true])),
+    );
+  }, [grouped]);
 
   const startItem = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const endItem = Math.min(currentPage * PAGE_SIZE, total);
@@ -114,128 +162,206 @@ function CoursesContent() {
     (page) =>
       page === 1 ||
       page === totalPages ||
-      Math.abs(page - currentPage) <= 1
+      Math.abs(page - currentPage) <= 1,
   );
 
+  const metaText = loading
+    ? "Loading the catalog…"
+    : total === 0
+      ? query
+        ? `Nothing matches “${query}”`
+        : "Catalog is empty"
+      : `${startItem.toLocaleString()}–${endItem.toLocaleString()} of ${total.toLocaleString()}`;
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-navy-dark mb-6">
-        Browse Courses
-      </h1>
-
-      <SearchBar
-        placeholder="Search courses"
-        onSearch={handleSearch}
-        defaultValue={search}
-        className="mb-4"
-      />
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8 text-sm text-gray-500">
-        <p>
-          {loading
-            ? "Loading courses..."
-            : total === 0
-              ? "No courses found"
-              : `Showing ${startItem}-${endItem} of ${total} courses`}
-        </p>
-        {!loading && totalPages > 1 && (
-          <p>
-            Page {currentPage} of {totalPages}
-          </p>
-        )}
+    <div className="min-h-screen bg-cream">
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <h1 className="text-2xl font-bold text-navy-dark tracking-tight">
+            Courses
+          </h1>
+          <p className="text-sm text-gray-400 mt-1 tabular-nums">{metaText}</p>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-20 text-gray-400">Loading courses...</div>
-      ) : Object.keys(grouped).length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          No courses found for &ldquo;{search}&rdquo;
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {Object.entries(grouped).map(([dept, deptCourses]) => (
-            <details key={dept} className="group border-b border-gray-200 pb-2">
-              <summary className="flex items-center justify-between cursor-pointer list-none py-2 text-sm font-bold text-navy uppercase tracking-wider">
-                <span>{dept}</span>
-                <svg
-                  className="w-4 h-4 transition-transform group-open:rotate-90"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </summary>
-              <div className="space-y-1 mt-2">
-                {deptCourses.map((c) => (
-                  <Link
-                    key={c.courseId}
-                    href={`/courses/${c.courseId}`}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white hover:shadow-sm transition-all group/row"
-                  >
-                    <div>
-                      <span className="font-semibold text-navy-dark group-hover/row:text-orange transition-colors">
-                        {c.deptCode} {c.courseNumber}
-                      </span>
-                      <span className="text-sm text-gray-500 ml-2">
-                        {c.courseName}
-                      </span>
-                    </div>
-                    <span className="text-sm text-gray-400">
-                      {c.listingCount} listing{c.listingCount !== 1 ? "s" : ""}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </details>
-          ))}
-          {totalPages > 1 && (
-            <nav
-              aria-label="Course pages"
-              className="flex flex-wrap items-center justify-center gap-2 pt-4"
-            >
-              <button
-                type="button"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-navy disabled:opacity-40 disabled:cursor-not-allowed hover:border-orange hover:text-orange transition-colors"
-              >
-                Previous
-              </button>
-              {pageNumbers.map((page, index) => {
-                const previousPage = pageNumbers[index - 1];
-                const showGap = previousPage && page - previousPage > 1;
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <SearchBar
+          placeholder="Search by course code or title"
+          onSearch={handleSearch}
+          defaultValue={search}
+          className="mb-8"
+        />
 
-                return (
-                  <div key={page} className="flex items-center gap-2">
-                    {showGap && <span className="text-gray-300">...</span>}
-                    <button
-                      type="button"
-                      onClick={() => handlePageChange(page)}
-                      aria-current={page === currentPage ? "page" : undefined}
-                      className={`min-w-10 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                        page === currentPage
-                          ? "border-orange bg-orange text-white"
-                          : "border-gray-200 bg-white text-navy hover:border-orange hover:text-orange"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  </div>
-                );
-              })}
+        {loading ? (
+          <CoursesSkeleton />
+        ) : Object.keys(grouped).length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
+            <svg
+              className="w-12 h-12 text-gray-200 mx-auto mb-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1}
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <p className="text-gray-500 text-sm">
+              {search ? (
+                <>
+                  No courses matched{" "}
+                  <span className="font-medium text-navy">
+                    {"“"}
+                    {search}
+                    {"”"}
+                  </span>
+                </>
+              ) : (
+                "No courses available right now"
+              )}
+            </p>
+            {search && (
               <button
-                type="button"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-navy disabled:opacity-40 disabled:cursor-not-allowed hover:border-orange hover:text-orange transition-colors"
+                onClick={() => handleSearch("")}
+                className="mt-3 text-sm text-orange hover:underline font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded"
               >
-                Next
+                Clear search
               </button>
-            </nav>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        ) : (
+          <div className="space-y-7">
+            {Object.entries(grouped).map(([deptCode, group]) => (
+              <details
+                key={deptCode}
+                open={openMap[deptCode] ?? true}
+                onToggle={(e) => {
+                  const isOpen = (e.target as HTMLDetailsElement).open;
+                  setOpenMap((prev) => ({
+                    ...prev,
+                    [deptCode]: isOpen,
+                  }));
+                }}
+                className="group"
+              >
+                <summary className="flex items-center justify-between cursor-pointer list-none py-2 border-b border-gray-200/80 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/40 focus-visible:ring-offset-2 focus-visible:ring-offset-cream">
+                  <span className="text-xs font-bold text-navy uppercase tracking-[0.15em]">
+                    {group.deptName}
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <span className="text-[11px] tabular-nums text-gray-400">
+                      {group.courses.length}
+                    </span>
+                    <svg
+                      aria-hidden="true"
+                      className="w-3.5 h-3.5 text-gray-400 transition-transform duration-200 group-open:rotate-90"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </span>
+                </summary>
+                <ul className="mt-2 space-y-0.5">
+                  {group.courses.map((c) => (
+                    <li key={c.courseId}>
+                      <Link
+                        href={`/courses/${c.courseId}`}
+                        className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl hover:bg-white hover:shadow-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/40 focus-visible:ring-offset-2 focus-visible:ring-offset-cream group/row"
+                      >
+                        <span className="flex items-baseline gap-3 min-w-0">
+                          <span className="font-semibold text-navy-dark tabular-nums whitespace-nowrap group-hover/row:text-orange transition-colors">
+                            {c.deptCode} {c.courseNumber}
+                          </span>
+                          <span className="text-sm text-gray-500 truncate">
+                            {c.courseName}
+                          </span>
+                        </span>
+                        <span
+                          className={`text-sm tabular-nums whitespace-nowrap ${
+                            c.listingCount === 0
+                              ? "text-gray-300"
+                              : "text-orange font-medium"
+                          }`}
+                          aria-label={
+                            c.listingCount === 0
+                              ? "No listings"
+                              : `${c.listingCount} listing${c.listingCount !== 1 ? "s" : ""}`
+                          }
+                        >
+                          {c.listingCount === 0
+                            ? "—"
+                            : `${c.listingCount} listing${c.listingCount !== 1 ? "s" : ""}`}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+
+            {totalPages > 1 && (
+              <nav
+                aria-label="Course pages"
+                className="flex flex-wrap items-center justify-center gap-2 pt-6"
+              >
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-navy disabled:opacity-40 disabled:cursor-not-allowed hover:border-orange hover:text-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/40 transition-colors"
+                >
+                  Previous
+                </button>
+                {pageNumbers.map((page, index) => {
+                  const previousPage = pageNumbers[index - 1];
+                  const showGap = previousPage && page - previousPage > 1;
+
+                  return (
+                    <div key={page} className="flex items-center gap-2">
+                      {showGap && (
+                        <span className="text-gray-300" aria-hidden="true">
+                          {"…"}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(page)}
+                        aria-current={page === currentPage ? "page" : undefined}
+                        className={`min-w-11 px-3 py-2.5 rounded-lg border text-sm font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/40 ${
+                          page === currentPage
+                            ? "border-orange bg-orange text-white"
+                            : "border-gray-200 bg-white text-navy hover:border-orange hover:text-orange"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-navy disabled:opacity-40 disabled:cursor-not-allowed hover:border-orange hover:text-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/40 transition-colors"
+                >
+                  Next
+                </button>
+              </nav>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

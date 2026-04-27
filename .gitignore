@@ -33,8 +33,8 @@ yarn-error.log*
 .cursor/
 AGENTS.md
 CLAUDE.md
-CODEX.md
-.github/copilot-instructions.md
+PRODUCT.md
+migrations/
 
 # env files — never commit secrets; templates stay tracked
 .env
