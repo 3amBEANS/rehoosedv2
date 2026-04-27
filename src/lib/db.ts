@@ -18,13 +18,15 @@ function createPool() {
   // server cert (fine for dev). Set DB_SSL=true in .env.local if connections fail
   // or if the console shows SSL/TLS required for this instance.
   const useSsl = process.env.DB_SSL === "true" || process.env.DB_SSL === "1";
+  const connectionTarget = host.startsWith("/cloudsql/")
+    ? { socketPath: host }
+    : { host, port: Number(process.env.DB_PORT) || 3306 };
 
   return mysql.createPool({
-    host,
+    ...connectionTarget,
     user,
     password,
     database,
-    port: Number(process.env.DB_PORT) || 3306,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
